@@ -1,4 +1,4 @@
-# Shelby Task Manager
+# ShelterSync
 
 A team task management app with decentralized file storage powered by **[Shelby Protocol](https://shelby.xyz)** on the **Aptos blockchain**.
 
@@ -8,7 +8,7 @@ A team task management app with decentralized file storage powered by **[Shelby 
 
 ## Live Demo
 
-🌐 [shelby-task-manager.vercel.app](https://shelby-task-manager.vercel.app)
+🌐 [ShelterSync.vercel.app](https://ShelterSync.vercel.app)
 
 ---
 
@@ -67,8 +67,8 @@ src/
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/Kikirizkyy00/shelby-task-manager.git
-cd shelby-task-manager
+git clone https://github.com/Kikirizkyy00/ShelterSync.git
+cd SheltersSync
 ```
 
 ### 2. Install dependencies
@@ -144,7 +144,7 @@ await shelbyClient.rpc.putBlob({
 
 1. Push this repo to GitHub
 2. Go to [vercel.com/new](https://vercel.com/new)
-3. Import `Kikirizkyy00/shelby-task-manager`
+3. Import `Kikirizkyy00/ShelterSync`
 4. Add environment variables
 5. Click **Deploy**
 
