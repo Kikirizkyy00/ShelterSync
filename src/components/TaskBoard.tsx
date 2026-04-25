@@ -14,6 +14,7 @@ const COLUMNS: { id: Status; label: string }[] = [
 ];
 
 export default function TaskBoard() {
+  // Added moveTask back to the hook destructuring
   const { tasks, addTask, moveTask, byStatus } = useTasks();
   const [addModal, setAddModal] = useState<Status | null>(null);
   const [uploadTarget, setUploadTarget] = useState<{ id: number; name: string } | null>(null);
@@ -39,6 +40,7 @@ export default function TaskBoard() {
                 <TaskCard
                   key={task.id}
                   task={task}
+                  // Connected the moveTask function here
                   onMove={() => moveTask(task.id)}
                   onUpload={() => setUploadTarget({ id: task.id, name: task.title })}
                 />
@@ -54,7 +56,10 @@ export default function TaskBoard() {
       {addModal && (
         <AddTaskModal
           defaultStatus={addModal}
-          onSave={(data) => { addTask(data); setAddModal(null); }}
+          onSave={(data) => {
+            addTask(data);
+            setAddModal(null);
+          }}
           onClose={() => setAddModal(null)}
         />
       )}

@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useShelby } from "@/providers/ShelbyProvider";
-import { ShelbyFile } from "@/lib/types";
+import { ShelbyFile } from "@/lib/shelby";
 
 export default function StoragePanel() {
   const { files, fetchFiles, download, isConnected } = useShelby();
@@ -105,11 +105,11 @@ function FileRow({ file, onDownload }: { file: ShelbyFile; onDownload: () => voi
         </div>
         <span className="file-name">{file.name}</span>
       </div>
-      <span className="file-task">{file.taskTitle || "—"}</span>
+      <span className="file-task">{file.name || "—"}</span>
       <span className="file-size">{fmtBytes(file.size)}</span>
       <span className="file-date">{fmtDate(file.uploadedAt)}</span>
-      <span className="blob-id" title={file.blobId}>
-        {file.blobId ? file.blobId.slice(0, 10) + "..." : "—"}
+      <span className="blob-id" title={file.id}>
+        {file.id ? file.id.slice(0, 10) + "..." : "—"}
       </span>
       <button className="btn-dl" onClick={onDownload}>Download</button>
     </div>

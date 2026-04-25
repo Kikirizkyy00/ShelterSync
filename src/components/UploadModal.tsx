@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useShelby } from "@/providers/ShelbyProvider";
+import { useWallet } from "@aptos-labs/wallet-adapter-react";
 
 const STEPS = [
   "Encoding file with erasure coding",
@@ -19,15 +20,34 @@ export default function UploadModal({
   name: string;
   onClose: () => void;
 }) {
-  const { upload, uploading, progress, isConnected } = useShelby();
+  // Pull core logic from ShelbyProvider
+  const { upload, uploading, progress } = useShelby();
+  
+  // Pull real-time connection status directly from the Wallet Adapter
+  const { connected } = useWallet();
+
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Clear error message automatically once wallet is connected
+  useEffect(() => {
+    if (connected && error === "Please connect your Aptos wallet first.") {
+      setError("");
+    }
+  }, [connected, error]);
+
   const handleUpload = async () => {
-    if (!isConnected) { setError("Please connect your Aptos wallet first."); return; }
-    if (!file) { setError("Please select a file first."); return; }
+    if (!connected) {
+      setError("Please connect your Aptos wallet first.");
+      return;
+    }
+    if (!file) {
+      setError("Please select a file first.");
+      return;
+    }
+    
     setError("");
     try {
       await upload({ file, id, name });
@@ -74,7 +94,10 @@ export default function UploadModal({
             ref={inputRef}
             type="file"
             style={{ display: "none" }}
-            onChange={(e) => { setFile(e.target.files?.[0] || null); setError(""); }}
+            onChange={(e) => { 
+              setFile(e.target.files?.[0] || null); 
+              setError(""); 
+            }}
           />
         </div>
 
@@ -96,14 +119,19 @@ export default function UploadModal({
         )}
 
         {success && <p className="msg-ok">File successfully stored on Shelby!</p>}
+        
+        {/* Conditional Error Rendering */}
         {error && <p className="msg-err">{error}</p>}
+        {!connected && !uploading && !error && (
+            <p className="msg-err" style={{ opacity: 0.8 }}>Wallet not detected. Please connect to continue.</p>
+        )}
 
         <div className="modal-foot">
           <button className="btn btn-ghost" onClick={onClose} disabled={uploading}>Cancel</button>
           <button
             className="btn btn-primary"
             onClick={handleUpload}
-            disabled={uploading || !file || success}
+            disabled={uploading || !file || success || !connected}
           >
             {uploading ? "Uploading..." : "Upload to Shelby"}
           </button>

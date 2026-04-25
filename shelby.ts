@@ -58,7 +58,7 @@ export async function uploadToShelby({
   signAndSubmitTransaction: (tx: { data: unknown }) => Promise<{ hash: string }>;
   aptosClient: Aptos;
   onProgress?: (step: number, label: string) => void;
-}): Promise<{ blobId: string; blobName: string }> {
+}): Promise<{ id: string; blobName: string }> {
   // Step 1 — File Encoding
   onProgress?.(1, "Step 1/3: Encoding file with erasure coding...");
   const fileBuffer = Buffer.from(await file.arrayBuffer());
@@ -90,7 +90,7 @@ export async function uploadToShelby({
   });
 
   onProgress?.(4, "Done! File stored on the Shelby network.");
-  return { blobId: submitted.hash, blobName: file.name };
+  return { id: submitted.hash, blobName: file.name };
 }
 
 export async function listAccountFiles(
@@ -105,11 +105,11 @@ export async function listAccountFiles(
       id: b.name,
       name: b.name,
       size: b.size ?? 0,
-      taskId: 0,
-      taskTitle: "",
-      blobId: b.blobMerkleRoot ?? "",
+      id: 0,
+      name: "",
+      id: b.blobMerkleRoot ?? "",
       uploadedAt: b.uploadedAt ?? new Date().toISOString(),
-      downloadUrl: `https://api.testnet.shelby.xyz/shelby/v1/blobs/${accountAddress}/${b.name}`,
+      : `https://api.testnet.shelby.xyz/shelby/v1/blobs/${accountAddress}/${b.name}`,
     }));
   } catch {
     return [];
@@ -117,7 +117,7 @@ export async function listAccountFiles(
 }
 
 export async function downloadFromShelby(file: ShelbyFile): Promise<void> {
-  const res = await fetch(file.downloadUrl);
+  const res = await fetch(file.);
   if (!res.ok) throw new Error(`Download failed: ${res.status}`);
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
