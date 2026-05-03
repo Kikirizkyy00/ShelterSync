@@ -1,30 +1,28 @@
-import { Aptos, AptosConfig, Network } from "@aptos-labs/ts-sdk";
+import {
+  ShelbyClient
+} from "@shelby-protocol/sdk/browser";
 
-export interface UploadProgress { step: number; label: string; }
-export interface ShelbyFile { id: string; name: string; size: number; uploadedAt: number; }
+import {
+  Aptos,
+  AptosConfig,
+  Network
+} from "@aptos-labs/ts-sdk";
 
-export const uploadToShelby = async (args: {
-  file: File; account: any; signAndSubmitTransaction: any;
-  onProgress?: (step: number, label: string) => void;
-}) => {
-  if (args.onProgress) args.onProgress(1, "Preparing decentralized storage...");
-  
-  const transaction = {
-    data: {
-      function: "0x1::aptos_account::transfer" as const,
-      typeArguments: [],
-      functionArguments: [args.account.address, "0"], 
-    },
-  };
+import type { ShelbyFile } from "./types";
+export type { ShelbyFile };
 
-  if (args.onProgress) args.onProgress(2, "Confirming on Aptos...");
-  const response = await args.signAndSubmitTransaction(transaction);
-  
-  if (args.onProgress) args.onProgress(3, "Finalizing upload...");
-  return {
-    id: response.hash,
-    name: args.file.name,
-    size: args.file.size,
-    uploadedAt: Date.now(),
-  };
-};
+export function createAptosClient() {
+  return new Aptos(
+    new AptosConfig({ network: Network.TESTNET })
+  );
+}
+
+export async function createShelbyClient() {
+  return new ShelbyClient({
+    network: Network.TESTNET,
+  });
+}
+
+export async function listAccountFiles(): Promise<ShelbyFile[]> {
+  return [];
+}

@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@aptos-labs/ts-sdk": "^6.0.0",
-    "@aptos-labs/wallet-adapter-react": "^3.0.6",
+    "@aptos-labs/wallet-adapter-react": "^3.8.0",
     "@mizuwallet-sdk/core": "^1.4.0",
     "@shelby-protocol/sdk": "latest",
     "@telegram-apps/bridge": "^1.9.2",
@@ -25,10 +25,10 @@
   },
   "devDependencies": {
     "@types/node": "^22",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "eslint": "^9",
     "eslint-config-next": "^16.2.4",
-    "typescript": "^5"
+    "typescript": "^5.9.3"
   }
 }

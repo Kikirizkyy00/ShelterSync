@@ -17,7 +17,7 @@ export default function TaskBoard() {
   // Added moveTask back to the hook destructuring
   const { tasks, addTask, moveTask, byStatus } = useTasks();
   const [addModal, setAddModal] = useState<Status | null>(null);
-  const [uploadTarget, setUploadTarget] = useState<{ id: number; name: string } | null>(null);
+  const [uploadTarget, setUploadTarget] = useState<{ id: string; name: string } | null>(null);
 
   return (
     <div>

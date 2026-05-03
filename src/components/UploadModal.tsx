@@ -16,12 +16,12 @@ export default function UploadModal({
   name,
   onClose,
 }: {
-  id: number;
+  id: string;
   name: string;
   onClose: () => void;
 }) {
   // Pull core logic from ShelbyProvider
-  const { upload, uploading, progress } = useShelby();
+  const { upload, uploading, progress, setUploadProgress } = useShelby();
   
   // Pull real-time connection status directly from the Wallet Adapter
   const { connected } = useWallet();
@@ -29,6 +29,7 @@ export default function UploadModal({
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [localUploading, setLocalUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Clear error message automatically once wallet is connected
@@ -49,23 +50,29 @@ export default function UploadModal({
     }
     
     setError("");
+    setLocalUploading(true);
     try {
-      await upload({ file, id, name });
+      await upload(file, (step, label) => {
+        setUploadProgress({ step, label });
+      });
       setSuccess(true);
       setTimeout(onClose, 1500);
     } catch (err: any) {
       setError(err.message || "Upload failed. Please try again.");
+    } finally {
+      setLocalUploading(false);
     }
   };
 
-  const pct = Math.round((progress.step / 4) * 100);
+  const isUploading = uploading || localUploading;
+  const pct = progress ? Math.round((progress.step / 4) * 100) : 0;
 
   return (
-    <div className="overlay" onClick={(e) => e.target === e.currentTarget && !uploading && onClose()}>
+    <div className="overlay" onClick={(e) => e.target === e.currentTarget && !isUploading && onClose()}>
       <div className="modal">
         <div className="modal-head">
           <h2 className="modal-title">Attach file to Shelby</h2>
-          <button className="modal-close" onClick={onClose} disabled={uploading}>✕</button>
+          <button className="modal-close" onClick={onClose} disabled={isUploading}>✕</button>
         </div>
 
         <div className="info-box">
@@ -101,7 +108,7 @@ export default function UploadModal({
           />
         </div>
 
-        {uploading && (
+        {isUploading && progress && (
           <div>
             <div className="progress-track">
               <div className="progress-fill" style={{ width: `${pct}%` }} />
@@ -118,22 +125,32 @@ export default function UploadModal({
           </div>
         )}
 
-        {success && <p className="msg-ok">File successfully stored on Shelby!</p>}
-        
-        {/* Conditional Error Rendering */}
-        {error && <p className="msg-err">{error}</p>}
-        {!connected && !uploading && !error && (
-            <p className="msg-err" style={{ opacity: 0.8 }}>Wallet not detected. Please connect to continue.</p>
+        {error && (
+          <div className="error" style={{ color: "#ff4444", fontSize: "0.9rem", marginTop: "1rem" }}>
+            {error}
+          </div>
         )}
 
-        <div className="modal-foot">
-          <button className="btn btn-ghost" onClick={onClose} disabled={uploading}>Cancel</button>
+        {success && (
+          <div className="success" style={{ color: "#44ff44", fontSize: "0.9rem", marginTop: "1rem" }}>
+            File uploaded successfully!
+          </div>
+        )}
+
+        <div style={{ display: "flex", gap: "0.5rem", marginTop: "1.5rem" }}>
+          <button
+            className="btn btn-ghost"
+            onClick={onClose}
+            disabled={isUploading}
+          >
+            Cancel
+          </button>
           <button
             className="btn btn-primary"
             onClick={handleUpload}
-            disabled={uploading || !file || success || !connected}
+            disabled={!file || isUploading}
           >
-            {uploading ? "Uploading..." : "Upload to Shelby"}
+            {isUploading ? "Uploading..." : "Upload"}
           </button>
         </div>
       </div>
