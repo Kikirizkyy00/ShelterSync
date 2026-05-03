@@ -69,7 +69,7 @@ export function ShelbyProvider({ children }: { children: ReactNode }) {
         commitments,
         deletionPolicy: { epoch: 1 },
         encodingType: { redStuff: true },
-        blobSize: BigInt(fileBuffer.byteLength),
+        blobSize: fileBuffer.byteLength,
         reuseRegistration: true,
       });
 
@@ -81,7 +81,7 @@ export function ShelbyProvider({ children }: { children: ReactNode }) {
       await shelbyClient.rpc.putBlob({
         account: account.address,
         blobName: file.name,
-        blobData: new Uint8Array(fileBuffer),
+        blobData: new Uint8Array(fileBuffer as ArrayBufferLike),
       });
 
       // Step 4 - Complete
