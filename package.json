@@ -16,9 +16,13 @@
     "@telegram-apps/bridge": "^1.9.2",
     "aptos": "^1.22.1",
     "axios": "^1.15.2",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
     "gapi-script": "^1.2.0",
     "got": "^15.0.3",
     "next": "^16.2.4",
+    "node-fetch": "^3.3.2",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "uuid": "^14.0.0"
