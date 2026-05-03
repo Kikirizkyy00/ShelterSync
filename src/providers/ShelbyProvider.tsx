@@ -3,8 +3,8 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from "react";
 import type { ShelbyFile, UploadProgress } from "@/lib/types";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
-import { ShelbyClient, ShelbyBlobClient } from "@shelby-protocol/sdk/browser";
-import { createAptosClient } from "@/lib/shelby";
+import { ShelbyClient } from "@shelby-protocol/sdk/browser";
+
 import { Network } from "@aptos-labs/ts-sdk";
 
 export type { ShelbyFile, UploadProgress };
@@ -57,31 +57,24 @@ export function ShelbyProvider({ children }: { children: ReactNode }) {
       // Step 1 - Read file
       onProgress?.(1, "Encoding file with erasure coding...");
       const fileBuffer = await file.arrayBuffer();
+      const blobData = new Uint8Array(fileBuffer);
 
       // Step 2 - Register on Aptos blockchain
       onProgress?.(2, "Registering on Aptos blockchain...");
-      const aptosClient = createAptosClient();
       const shelbyClient = new ShelbyClient({ network: Network.TESTNET });
 
-      const payload = ShelbyBlobClient.createRegisterBlobPayload({
-        account: account.address as any,
-        blobName: file.name,
-        blobSize: fileBuffer.byteLength,
-        blobMerkleRoot: "0x0000000000000000000000000000000000000000000000000000000000000000",
-        expirationMicros: Date.now() * 1000 + 30 * 24 * 60 * 60 * 1000000,
-        numChunksets: 1,
-        encoding: 0,
-      });
-
-      const tx = await signAndSubmitTransaction({ data: payload });
-      await aptosClient.waitForTransaction({ transactionHash: tx.hash });
-
-      // Step 3 - Upload to Shelby storage
+      // Step 3 - Upload via RPC
       onProgress?.(3, "Uploading to Shelby storage providers...");
       await shelbyClient.rpc.putBlob({
-        account: account.address,
+        account: account.address as any,
         blobName: file.name,
-        blobData: new Uint8Array(fileBuffer as ArrayBufferLike),
+        blobData,
+        onProgress: (p: any) => {
+          const pct = p.uploadedBytes && p.totalBytes
+            ? Math.round((p.uploadedBytes / p.totalBytes) * 100)
+            : 0;
+          onProgress?.(3, `Uploading... ${pct}%`);
+        },
       });
 
       // Step 4 - Complete
