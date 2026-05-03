@@ -1,4 +1,3 @@
-cat > src/providers/ShelbyProvider.tsx << 'EOF'
 "use client";
 
 import React, { createContext, useContext, useState, useCallback, ReactNode } from "react";
@@ -50,4 +49,75 @@ export function ShelbyProvider({ children }: { children: ReactNode }) {
   const upload = useCallback(async (
     file: File,
     onProgress?: (step: number, label: string) => void
-  ): Promi
+  ): Promise<ShelbyFile> => {
+    if (!connected || !account) throw new Error("Wallet not connected");
+
+    setUploading(true);
+    try {
+      // Step 1 - Erasure coding
+      onProgress?.(1, "Encoding file with erasure coding...");
+      const fileBuffer = await file.arrayBuffer();
+      const provider = await createDefaultErasureCodingProvider();
+      const commitments = await generateCommitments(provider, fileBuffer);
+
+      // Step 2 - Register on Aptos blockchain
+      onProgress?.(2, "Registering on Aptos blockchain...");
+      const aptosClient = createAptosClient();
+      const shelbyClient = new ShelbyClient({ network: Network.TESTNET });
+
+      const payload = ShelbyBlobClient.createRegisterBlobPayload({
+        commitments,
+        deletionPolicy: { epoch: 1 },
+        encodingType: { redStuff: true },
+        blobSize: BigInt(fileBuffer.byteLength),
+        reuseRegistration: true,
+      });
+
+      const tx = await signAndSubmitTransaction({ data: payload });
+      await aptosClient.waitForTransaction({ transactionHash: tx.hash });
+
+      // Step 3 - Upload to Shelby storage
+      onProgress?.(3, "Uploading to Shelby storage providers...");
+      await shelbyClient.rpc.putBlob({
+        account: account.address,
+        blobName: file.name,
+        blobData: new Uint8Array(fileBuffer),
+      });
+
+      // Step 4 - Complete
+      onProgress?.(4, "Complete!");
+
+      const shelbyFile: ShelbyFile = {
+        id: `shelby-${Date.now()}`,
+        name: file.name,
+        size: file.size,
+        uploadedAt: new Date().toISOString(),
+        url: `https://shelby.xyz/blob/${account.address}/${file.name}`,
+      };
+
+      setFiles(prev => [...prev, shelbyFile]);
+      return shelbyFile;
+
+    } finally {
+      setUploading(false);
+      setUploadProgress(null);
+    }
+  }, [connected, account, signAndSubmitTransaction]);
+
+  return (
+    <ShelbyContext.Provider value={{
+      files,
+      fetchFiles,
+      download,
+      isConnected: connected,
+      upload,
+      uploading,
+      progress: uploadProgress,
+      setUploadProgress,
+    }}>
+      {children}
+    </ShelbyContext.Provider>
+  );
+}
+
+export default ShelbyProvider;
