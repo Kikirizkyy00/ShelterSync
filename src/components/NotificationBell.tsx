@@ -1,5 +1,6 @@
+"use client";
+
 import { useState, useEffect, useRef } from "react";
-import { supabase } from "../lib/supabase";
 
 type Notification = {
   id: string;
@@ -9,44 +10,10 @@ type Notification = {
   created_at: string;
 };
 
-export default function NotificationBell({ userId }: { userId: string }) {
+export default function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-
-  // Initial fetch
-  useEffect(() => {
-    supabase
-      .from("notifications")
-      .select("*")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(20)
-      .then(({ data }) => {
-        if (data) setNotifications(data);
-      });
-  }, [userId]);
-
-  // Realtime subscription
-  useEffect(() => {
-    const channel = supabase
-      .channel("notifications")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${userId}`,
-        },
-        (payload) => {
-          setNotifications((prev) => [payload.new as Notification, ...prev]);
-        }
-      )
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, [userId]);
 
   // Close on outside click
   useEffect(() => {
@@ -59,13 +26,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  async function markAllAsRead() {
-    await supabase
-      .from("notifications")
-      .update({ read: true })
-      .eq("user_id", userId)
-      .eq("read", false);
-
+  function markAllAsRead() {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   }
 
