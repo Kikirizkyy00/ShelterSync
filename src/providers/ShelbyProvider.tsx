@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from "react";
 import type { ShelbyFile, UploadProgress } from "@/lib/types";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
-import { ShelbyClient, ShelbyBlobClient, generateCommitments, createDefaultErasureCodingProvider } from "@shelby-protocol/sdk/browser";
+import { ShelbyClient, ShelbyBlobClient } from "@shelby-protocol/sdk/browser";
 import { createAptosClient } from "@/lib/shelby";
 import { Network } from "@aptos-labs/ts-sdk";
 
@@ -54,11 +54,9 @@ export function ShelbyProvider({ children }: { children: ReactNode }) {
 
     setUploading(true);
     try {
-      // Step 1 - Erasure coding
+      // Step 1 - Read file
       onProgress?.(1, "Encoding file with erasure coding...");
       const fileBuffer = await file.arrayBuffer();
-      const provider = await createDefaultErasureCodingProvider();
-      const commitments = await generateCommitments(provider, Buffer.from(fileBuffer));
 
       // Step 2 - Register on Aptos blockchain
       onProgress?.(2, "Registering on Aptos blockchain...");
@@ -66,8 +64,13 @@ export function ShelbyProvider({ children }: { children: ReactNode }) {
       const shelbyClient = new ShelbyClient({ network: Network.TESTNET });
 
       const payload = ShelbyBlobClient.createRegisterBlobPayload({
+        account: account.address as any,
+        blobName: file.name,
         blobSize: fileBuffer.byteLength,
-        reuseRegistration: true,
+        blobMerkleRoot: "0x0000000000000000000000000000000000000000000000000000000000000000",
+        expirationMicros: Date.now() * 1000 + 30 * 24 * 60 * 60 * 1000000,
+        numChunksets: 1,
+        encoding: 0,
       });
 
       const tx = await signAndSubmitTransaction({ data: payload });
