@@ -58,7 +58,7 @@ export function ShelbyProvider({ children }: { children: ReactNode }) {
       onProgress?.(1, "Encoding file with erasure coding...");
       const fileBuffer = await file.arrayBuffer();
       const provider = await createDefaultErasureCodingProvider();
-      const commitments = await generateCommitments(provider, fileBuffer);
+      const commitments = await generateCommitments(provider, Buffer.from(fileBuffer));
 
       // Step 2 - Register on Aptos blockchain
       onProgress?.(2, "Registering on Aptos blockchain...");
@@ -66,9 +66,6 @@ export function ShelbyProvider({ children }: { children: ReactNode }) {
       const shelbyClient = new ShelbyClient({ network: Network.TESTNET });
 
       const payload = ShelbyBlobClient.createRegisterBlobPayload({
-        commitments,
-        deletionPolicy: { epoch: 1 },
-        encodingType: { redStuff: true },
         blobSize: fileBuffer.byteLength,
         reuseRegistration: true,
       });
