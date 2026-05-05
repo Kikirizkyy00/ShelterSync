@@ -1,5 +1,3 @@
-mkdir -p src/components
-cat > src/components/GlobalErrorHandler.tsx << 'EOF'
 "use client";
 
 import { useEffect } from "react";
@@ -25,4 +23,3 @@ export function GlobalErrorHandler() {
 
   return null;
 }
-EOF

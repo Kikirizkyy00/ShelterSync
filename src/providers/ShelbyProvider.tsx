@@ -1,116 +1,100 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback, ReactNode } from "react";
-import type { ShelbyFile, UploadProgress } from "@/lib/types";
-import { useWallet } from "@aptos-labs/wallet-adapter-react";
+import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { ShelbyClient } from "@shelby-protocol/sdk/browser";
+import { createShelbyClient, listAccountFiles, uploadToShelby, ShelbyFile } from "@/lib/shelby";
+import { useWallet } from "@aptos-labs/wallet-adapter-react";
 
-import { Network } from "@aptos-labs/ts-sdk";
+interface UploadProgress { step: number; label: string; }
 
-export type { ShelbyFile, UploadProgress };
-
-interface ShelbyContextType {
+interface ShelbyContextValue {
+  client: ShelbyClient | null;
+  isReady: boolean;
   files: ShelbyFile[];
-  fetchFiles: () => Promise<void>;
-  download: (fileId: string) => Promise<void>;
-  isConnected: boolean;
+  isLoadingFiles: boolean;
   upload: (file: File, onProgress?: (step: number, label: string) => void) => Promise<ShelbyFile>;
   uploading: boolean;
   progress: UploadProgress | null;
-  setUploadProgress: (progress: UploadProgress | null) => void;
+  setUploadProgress: (p: UploadProgress) => void;
+  refreshFiles: () => Promise<void>;
+  error: string | null;
 }
 
-const ShelbyContext = createContext<ShelbyContextType | undefined>(undefined);
+const ShelbyContext = createContext<ShelbyContextValue | null>(null);
 
-export function useShelby() {
-  const context = useContext(ShelbyContext);
-  if (!context) throw new Error("useShelby must be used within ShelbyProvider");
-  return context;
-}
-
-export function ShelbyProvider({ children }: { children: ReactNode }) {
-  const { connected, account, signAndSubmitTransaction } = useWallet();
+export function ShelbyProvider({ children }: { children: React.ReactNode }) {
+  const { account, signAndSubmitTransaction } = useWallet();
+  const [client, setClient] = useState<ShelbyClient | null>(null);
+  const [isReady, setIsReady] = useState(false);
   const [files, setFiles] = useState<ShelbyFile[]>([]);
+  const [isLoadingFiles, setIsLoadingFiles] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
+  const [progress, setProgress] = useState<UploadProgress | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchFiles = useCallback(async () => {
-    if (!connected) return;
-    setFiles([]);
-  }, [connected]);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const c = await createShelbyClient();
+        if (!cancelled) { setClient(c); setIsReady(c !== null); }
+      } catch (err) {
+        if (!cancelled) console.error("[ShelbyProvider] Init error:", err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
-  const download = useCallback(async (fileId: string) => {
-    const file = files.find(f => f.id === fileId);
-    if (file && typeof window !== "undefined") {
-      window.open(file.url, "_blank");
+  const refreshFiles = useCallback(async () => {
+    if (!client || !account?.address) return;
+    setIsLoadingFiles(true);
+    try {
+      const result = await listAccountFiles(client, account.address.toString());
+      setFiles(result);
+    } catch (err) {
+      console.warn("[ShelbyProvider] refreshFiles:", err);
+    } finally {
+      setIsLoadingFiles(false);
     }
-  }, [files]);
+  }, [client, account]);
+
+  useEffect(() => {
+    if (client && account?.address) refreshFiles();
+    else setFiles([]);
+  }, [client, account, refreshFiles]);
 
   const upload = useCallback(async (
     file: File,
     onProgress?: (step: number, label: string) => void
   ): Promise<ShelbyFile> => {
-    if (!connected || !account) throw new Error("Wallet not connected");
-
+    if (!account?.address) throw new Error("No wallet connected.");
     setUploading(true);
+    setProgress(null);
     try {
-      // Step 1 - Read file
-      onProgress?.(1, "Encoding file with erasure coding...");
-      const fileBuffer = await file.arrayBuffer();
-      const blobData = new Uint8Array(fileBuffer);
-
-      // Step 2 - Register on Aptos blockchain
-      onProgress?.(2, "Registering on Aptos blockchain...");
-      const shelbyClient = new ShelbyClient({ network: Network.TESTNET });
-
-      // Step 3 - Upload via RPC
-      onProgress?.(3, "Uploading to Shelby storage providers...");
-      await shelbyClient.rpc.putBlob({
-        account: account.address as any,
-        blobName: file.name,
-        blobData,
-        onProgress: (p: any) => {
-          const pct = p.uploadedBytes && p.totalBytes
-            ? Math.round((p.uploadedBytes / p.totalBytes) * 100)
-            : 0;
-          onProgress?.(3, `Uploading... ${pct}%`);
-        },
+      const uploaded = await uploadToShelby({
+        file,
+        account: { address: account.address.toString() },
+        signAndSubmitTransaction: signAndSubmitTransaction as (tx: { data: unknown }) => Promise<{ hash: string }>,
+        onProgress: (step, label) => { setProgress({ step, label }); onProgress?.(step, label); },
       });
-
-      // Step 4 - Complete
-      onProgress?.(4, "Complete!");
-
-      const shelbyFile: ShelbyFile = {
-        id: `shelby-${Date.now()}`,
-        name: file.name,
-        size: file.size,
-        uploadedAt: new Date().toISOString(),
-        url: `https://shelby.xyz/blob/${account.address}/${file.name}`,
-      };
-
-      setFiles(prev => [...prev, shelbyFile]);
-      return shelbyFile;
-
+      setFiles((prev) => [uploaded, ...prev]);
+      return uploaded;
     } finally {
       setUploading(false);
-      setUploadProgress(null);
     }
-  }, [connected, account, signAndSubmitTransaction]);
+  }, [account, signAndSubmitTransaction]);
+
+  const setUploadProgress = useCallback((p: UploadProgress) => setProgress(p), []);
 
   return (
-    <ShelbyContext.Provider value={{
-      files,
-      fetchFiles,
-      download,
-      isConnected: connected,
-      upload,
-      uploading,
-      progress: uploadProgress,
-      setUploadProgress,
-    }}>
+    <ShelbyContext.Provider value={{ client, isReady, files, isLoadingFiles, upload, uploading, progress, setUploadProgress, refreshFiles, error }}>
       {children}
     </ShelbyContext.Provider>
   );
 }
 
-export default ShelbyProvider;
+export function useShelby(): ShelbyContextValue {
+  const ctx = useContext(ShelbyContext);
+  if (!ctx) throw new Error("useShelby must be used inside <ShelbyProvider>");
+  return ctx;
+}

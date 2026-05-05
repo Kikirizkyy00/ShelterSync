@@ -7,6 +7,19 @@ import {
 } from "@aptos-labs/ts-sdk";
 
 /* =========================================
+   Calendar Types (Add These to Fix Errors)
+========================================= */
+
+export type CalendarProvider = 'google' | 'outlook' | 'apple';
+
+export interface CalendarEvent {
+  title: string;
+  description: string;
+  startTime: string; // ISO String format
+  endTime: string;   // ISO String format
+}
+
+/* =========================================
    Task Types
 ========================================= */
 

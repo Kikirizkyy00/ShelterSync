@@ -11,6 +11,9 @@ const STEPS = [
   "Complete!",
 ];
 
+const MAX_SIZE_MB = 500;
+const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
+
 export default function UploadModal({
   id,
   name,
@@ -20,10 +23,7 @@ export default function UploadModal({
   name: string;
   onClose: () => void;
 }) {
-  // Pull core logic from ShelbyProvider
   const { upload, uploading, progress, setUploadProgress } = useShelby();
-  
-  // Pull real-time connection status directly from the Wallet Adapter
   const { connected } = useWallet();
 
   const [file, setFile] = useState<File | null>(null);
@@ -32,7 +32,6 @@ export default function UploadModal({
   const [localUploading, setLocalUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Clear error message automatically once wallet is connected
   useEffect(() => {
     if (connected && error === "Please connect your Aptos wallet first.") {
       setError("");
@@ -40,15 +39,8 @@ export default function UploadModal({
   }, [connected, error]);
 
   const handleUpload = async () => {
-    if (!connected) {
-      setError("Please connect your Aptos wallet first.");
-      return;
-    }
-    if (!file) {
-      setError("Please select a file first.");
-      return;
-    }
-    
+    if (!connected) { setError("Please connect your Aptos wallet first."); return; }
+    if (!file) { setError("Please select a file first."); return; }
     setError("");
     setLocalUploading(true);
     try {
@@ -67,6 +59,12 @@ export default function UploadModal({
   const isUploading = uploading || localUploading;
   const pct = progress ? Math.round((progress.step / 4) * 100) : 0;
 
+  const formatSize = (bytes: number) => {
+    if (bytes >= 1024 * 1024 * 1024) return (bytes / (1024 * 1024 * 1024)).toFixed(1) + " GB";
+    if (bytes >= 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+    return (bytes / 1024).toFixed(1) + " KB";
+  };
+
   return (
     <div className="overlay" onClick={(e) => e.target === e.currentTarget && !isUploading && onClose()}>
       <div className="modal">
@@ -77,7 +75,7 @@ export default function UploadModal({
 
         <div className="info-box">
           <p>Files are stored on the <strong>Shelby Protocol</strong> — decentralized storage on Aptos blockchain.</p>
-          <p style={{ marginTop: 4 }}>Cost: <strong>1 ShelbyUSD</strong> per file · Retention: 30 days</p>
+          <p style={{ marginTop: 4 }}>Cost: <strong>1 ShelbyUSD</strong> per file · Retention: 30 days · Max: <strong>{MAX_SIZE_MB} MB</strong></p>
         </div>
 
         <div className="form-group">
@@ -87,23 +85,28 @@ export default function UploadModal({
 
         <div className="form-group">
           <label className="label">Select file</label>
-          <div className="dropzone" onClick={() => inputRef.current?.click()}>
+          <div className="dropzone" onClick={() => !isUploading && inputRef.current?.click()}>
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style={{ margin: "0 auto", display: "block" }}>
               <path d="M12 15V4m0 0l-4 4m4-4l4 4" stroke="#534AB7" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               <path d="M3 15v3a2 2 0 002 2h14a2 2 0 002-2v-3" stroke="#534AB7" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
             <p className="drop-label">
-              {file ? file.name : "Click to select a file (PDF, XLSX, PNG, etc.)"}
+              {file ? file.name : "Click to select a file (PDF, XLSX, PNG, MP4, etc.)"}
             </p>
-            {file && <p className="drop-size">{(file.size / 1024).toFixed(1)} KB</p>}
+            {file && (
+              <p className="drop-size" style={{ color: file.size > MAX_SIZE_BYTES ? "#ff4444" : undefined }}>
+                {formatSize(file.size)} {file.size > MAX_SIZE_BYTES ? `— exceeds ${MAX_SIZE_MB} MB limit` : ""}
+              </p>
+            )}
           </div>
           <input
             ref={inputRef}
             type="file"
             style={{ display: "none" }}
-            onChange={(e) => { 
-              setFile(e.target.files?.[0] || null); 
-              setError(""); 
+            onChange={(e) => {
+              const selected = e.target.files?.[0] || null;
+              setFile(selected);
+              setError("");
             }}
           />
         </div>
@@ -111,9 +114,14 @@ export default function UploadModal({
         {isUploading && progress && (
           <div>
             <div className="progress-track">
-              <div className="progress-fill" style={{ width: `${pct}%` }} />
+              <div className="progress-fill" style={{ width: `${pct}%`, transition: "width 0.4s ease" }} />
             </div>
             <p className="progress-label">{progress.label}</p>
+            {file && progress.step === 3 && (
+              <p style={{ fontSize: "0.8rem", color: "#888", marginTop: 4 }}>
+                Uploading {formatSize(file.size)} — large files may take several minutes...
+              </p>
+            )}
             <div className="steps">
               {STEPS.map((_, i) => (
                 <span
@@ -138,17 +146,11 @@ export default function UploadModal({
         )}
 
         <div style={{ display: "flex", gap: "0.5rem", marginTop: "1.5rem" }}>
-          <button
-            className="btn btn-ghost"
-            onClick={onClose}
-            disabled={isUploading}
-          >
-            Cancel
-          </button>
+          <button className="btn btn-ghost" onClick={onClose} disabled={isUploading}>Cancel</button>
           <button
             className="btn btn-primary"
             onClick={handleUpload}
-            disabled={!file || isUploading}
+            disabled={!file || isUploading || file.size > MAX_SIZE_BYTES}
           >
             {isUploading ? "Uploading..." : "Upload"}
           </button>

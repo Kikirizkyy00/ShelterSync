@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-
 import { Geist } from "next/font/google";
-
 import "./globals.css";
 
 import { WalletProvider } from "@/providers/WalletProvider";
@@ -24,7 +22,8 @@ export default function RootLayout({
   children: ReactNode;
 }) {
   return (
-    <html lang="en">
+    // suppressHydrationWarning prevents errors from browser extensions
+    <html lang="en" suppressHydrationWarning>
       <body className={geist.className}>
         <WalletProvider>
           <ShelbyProvider>
