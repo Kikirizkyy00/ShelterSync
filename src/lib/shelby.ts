@@ -26,7 +26,7 @@ export function createAptosClient(): Aptos {
 }
 
 export async function createShelbyClient(): Promise<ShelbyClient> {
-  return new ShelbyClient({ network: Network.TESTNET });
+  return new ShelbyClient({ network: Network.TESTNET, apiKey: process.env.NEXT_PUBLIC_SHELBY_API_KEY });
 }
 
 export async function uploadToShelby({
