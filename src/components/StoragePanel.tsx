@@ -5,13 +5,14 @@ import { useShelby } from "@/providers/ShelbyProvider";
 import type { ShelbyFile } from "@/lib/types";
 
 export default function StoragePanel() {
-  const { files, fetchFiles, download, isConnected } = useShelby();
+  const { files, refreshFiles, isLoadingFiles, upload, isReady } = useShelby();
+  const isConnected = isReady;
 
   useEffect(() => {
     if (isConnected) {
-      fetchFiles();
+      refreshFiles();
     }
-  }, [isConnected, fetchFiles]);
+  }, [isConnected, refreshFiles]);
 
   return (
     <div className="panel">
@@ -32,7 +33,7 @@ export default function StoragePanel() {
           {isConnected && (
             <button
               className="btn btn-ghost text-xs hover:underline"
-              onClick={fetchFiles}
+              onClick={refreshFiles}
             >
               Refresh
             </button>
@@ -87,7 +88,7 @@ export default function StoragePanel() {
             <FileRow
               key={file.id}
               file={file}
-              onDownload={() => download(file.id)}
+              onDownload={() => window.open(file.url, "_blank")}
             />
           ))}
         </div>
