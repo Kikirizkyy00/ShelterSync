@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useShelby } from "@/providers/ShelbyProvider";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
+import type { Task } from "../app/types";
 
 const STEPS = [
   "Encoding file with erasure coding",
@@ -14,15 +15,12 @@ const STEPS = [
 const MAX_SIZE_MB = 500;
 const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
 
-export default function UploadModal({
-  id,
-  name,
-  onClose,
-}: {
-  id: string;
-  name: string;
+interface UploadModalProps {
+  task: Task;
   onClose: () => void;
-}) {
+}
+
+export default function UploadModal({ task, onClose }: UploadModalProps) {
   const { upload, uploading, progress, setUploadProgress } = useShelby();
   const { connected } = useWallet();
 
@@ -80,15 +78,16 @@ export default function UploadModal({
 
         <div className="form-group">
           <label className="label">Related task</label>
-          <div className="task-chip">{name}</div>
+          {/* Dynamic title extraction out of the mapped dataset */}
+          <div className="task-chip">{task.title}</div>
         </div>
 
         <div className="form-group">
           <label className="label">Select file</label>
           <div className="dropzone" onClick={() => !isUploading && inputRef.current?.click()}>
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style={{ margin: "0 auto", display: "block" }}>
-              <path d="M12 15V4m0 0l-4 4m4-4l4 4" stroke="#534AB7" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M3 15v3a2 2 0 002 2h14a2 2 0 002-2v-3" stroke="#534AB7" strokeWidth="1.5" strokeLinecap="round" />
+              <path d="M12 15V4m0 0l-4 4m4-4l4 4" stroke="var(--teal-400)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M3 15v3a2 2 0 002 2h14a2 2 0 002-2v-3" stroke="var(--teal-400)" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
             <p className="drop-label">
               {file ? file.name : "Click to select a file (PDF, XLSX, PNG, MP4, etc.)"}
@@ -134,13 +133,13 @@ export default function UploadModal({
         )}
 
         {error && (
-          <div className="error" style={{ color: "#ff4444", fontSize: "0.9rem", marginTop: "1rem" }}>
+          <div className="msg-err">
             {error}
           </div>
         )}
 
         {success && (
-          <div className="success" style={{ color: "#44ff44", fontSize: "0.9rem", marginTop: "1rem" }}>
+          <div className="msg-ok">
             File uploaded successfully!
           </div>
         )}

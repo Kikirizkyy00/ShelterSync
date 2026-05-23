@@ -1,85 +1,76 @@
 "use client";
 
-import { useState } from "react";
-import { useTasks } from "@/hooks/useTasks";
-import { Status, Task } from "@/lib/types";
-import TaskCard from "./TaskCard";
-import AddTaskModal from "./AddTaskModal";
-import UploadModal from "./UploadModal";
-
-const COLUMNS: { id: Status; label: string }[] = [
-  { id: "todo", label: "To Do" },
-  { id: "in-progress", label: "In Progress" },
-  { id: "done", label: "Done" },
-];
-
-export default function TaskBoard() {
-  // Added moveTask back to the hook destructuring
-  const { tasks, addTask, moveTask, byStatus } = useTasks();
-  const [addModal, setAddModal] = useState<Status | null>(null);
-  const [uploadTarget, setUploadTarget] = useState<{ id: string; name: string } | null>(null);
-
-  return (
-    <div>
-      <div className="stats">
-        <StatCard label="Total tasks" value={tasks.length} />
-        <StatCard label="To Do" value={byStatus("todo").length} />
-        <StatCard label="In Progress" value={byStatus("in-progress").length} />
-        <StatCard label="Done" value={byStatus("done").length} />
-      </div>
-
-      <div className="board">
-        {COLUMNS.map((col) => (
-          <div key={col.id} className="col">
-            <div className="col-head">
-              <span className="col-title">{col.label}</span>
-              <span className="col-count">{byStatus(col.id).length}</span>
-            </div>
-            <div className="task-list">
-              {byStatus(col.id).map((task) => (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  // Connected the moveTask function here
-                  onMove={() => moveTask(task.id)}
-                  onUpload={() => setUploadTarget({ id: task.id, name: task.title })}
-                />
-              ))}
-            </div>
-            <button className="col-add" onClick={() => setAddModal(col.id)}>
-              + Add task
-            </button>
-          </div>
-        ))}
-      </div>
-
-      {addModal && (
-        <AddTaskModal
-          defaultStatus={addModal}
-          onSave={(data) => {
-            addTask(data);
-            setAddModal(null);
-          }}
-          onClose={() => setAddModal(null)}
-        />
-      )}
-
-      {uploadTarget && (
-        <UploadModal
-          id={uploadTarget.id}
-          name={uploadTarget.name}
-          onClose={() => setUploadTarget(null)}
-        />
-      )}
-    </div>
-  );
+import React from "react";
+import type { Task } from "../app/types";
+interface TaskBoardProps {
+  tasks: Task[];
+  onAttachClick: (task: Task) => void;
 }
 
-function StatCard({ label, value }: { label: string; value: number }) {
+export default function TaskBoard({ tasks, onAttachClick }: TaskBoardProps) {
+  const columns = [
+    { id: "Todo", title: "To Do", dotColor: "var(--amber-600)" },
+    { id: "InProgress", title: "In Progress", dotColor: "var(--purple-400)" },
+    { id: "Done", title: "Done", dotColor: "var(--green-600)" },
+  ];
+
+  const getColTasks = (colId: string) => tasks.filter((t) => t.status === colId);
+
   return (
-    <div className="stat">
-      <p className="stat-label">{label}</p>
-      <p className="stat-value">{value}</p>
-    </div>
+    <main className="board wrapper">
+      {columns.map((col) => {
+        const colTasks = getColTasks(col.id);
+        return (
+          <div className="col" key={col.id}>
+            <div className="col-head">
+              <h3 className="col-title" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: col.dotColor }} />
+                {col.title}
+              </h3>
+              <span className="col-count">{colTasks.length}</span>
+            </div>
+
+            <div className="task-list">
+              {colTasks.length === 0 ? (
+                <div className="empty" style={{ padding: "1.5rem 0", fontSize: "12px" }}>
+                  No tasks here
+                </div>
+              ) : (
+                colTasks.map((task) => (
+                  <div className="task-card" key={task.id}>
+                    <div className="task-top">
+                      <h4 className="task-title">{task.title}</h4>
+                      <span className="prio prio-high">High</span>
+                    </div>
+
+                    <div className="task-meta">
+                      <span className="avatar">UI</span>
+                      <span className="avatar" style={{ background: "var(--teal-100)", color: "var(--teal-600)" }}>AK</span>
+                      {task.cid && <span className="file-pill">🔗 Shelby</span>}
+                      <span className="due">10/04</span>
+                    </div>
+
+                    <div className="task-actions">
+                      <button className="btn-move" style={{ flex: 1 }}>
+                        {col.id === "Todo" ? "⚡ Start" : col.id === "InProgress" ? "✓ Done" : "Reset"}
+                      </button>
+                      <button 
+                        className="btn-attach" 
+                        style={{ flex: 1 }}
+                        onClick={() => onAttachClick(task)}
+                      >
+                        + Attach to Shelby
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <button className="col-add">+ Add task</button>
+          </div>
+        );
+      })}
+    </main>
   );
 }

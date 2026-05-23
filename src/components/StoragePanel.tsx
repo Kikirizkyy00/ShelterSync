@@ -18,21 +18,21 @@ export default function StoragePanel() {
     <div className="panel">
       <div className="panel-head">
         <div>
-          <h2 className="panel-title text-xl font-bold">Shelby Storage</h2>
-          <p className="panel-sub text-sm text-gray-400">
-            Task attachments stored decentrally on Aptos blockchain via Shelby
-            Protocol
+          <h2 className="panel-title">Shelby Storage</h2>
+          <p className="panel-sub">
+            Task attachments stored decentrally on Aptos blockchain via Shelby Protocol
           </p>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span className="count-chip bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full text-xs">
+          <span className="count-chip">
             {files.length} file{files.length !== 1 ? "s" : ""}
           </span>
 
           {isConnected && (
             <button
-              className="btn btn-ghost text-xs hover:underline"
+              className="btn btn-ghost"
+              style={{ fontSize: "12px", padding: "4px 8px" }}
               onClick={refreshFiles}
             >
               Refresh
@@ -41,7 +41,7 @@ export default function StoragePanel() {
         </div>
       </div>
 
-      <div className="steps-row flex gap-4 my-6 overflow-x-auto pb-2">
+      <div className="steps-row">
         {[
           "Erasure coding",
           "On-chain registration",
@@ -51,14 +51,13 @@ export default function StoragePanel() {
             key={i}
             style={{ display: "flex", alignItems: "center", gap: 8 }}
           >
-            {i > 0 && <span className="arrow text-gray-600">→</span>}
+            {i > 0 && <span className="arrow">→</span>}
 
-            <div className="step-item flex items-center gap-2 bg-white/5 px-3 py-1 rounded-full border border-white/10">
-              <span className="step-num bg-blue-600 text-white w-5 h-5 flex items-center justify-center rounded-full text-[10px]">
+            <div className="step-item">
+              <span className="step-num">
                 {i + 1}
               </span>
-
-              <span className="step-text text-xs text-gray-300">
+              <span className="step-text">
                 {step}
               </span>
             </div>
@@ -67,16 +66,16 @@ export default function StoragePanel() {
       </div>
 
       {!isConnected ? (
-        <div className="empty py-10 text-center text-gray-500 italic">
+        <div className="empty">
           Connect your Aptos wallet to view your files on Shelby.
         </div>
       ) : files.length === 0 ? (
-        <div className="empty py-10 text-center text-gray-500 italic">
+        <div className="empty">
           No files yet. Attach files to tasks from the Task Board.
         </div>
       ) : (
-        <div className="file-table w-full">
-          <div className="file-table-head grid grid-cols-5 text-[10px] uppercase text-gray-500 border-b border-white/5 pb-2 mb-2 px-2">
+        <div className="file-table">
+          <div className="file-table-head">
             <span>File</span>
             <span>Size</span>
             <span>Uploaded</span>
@@ -84,9 +83,10 @@ export default function StoragePanel() {
             <span></span>
           </div>
 
-          {files.map((file) => (
+          {/* FIX: Handled non-unique contract array strings using index interpolation */}
+          {files.map((file, index) => (
             <FileRow
-              key={file.id}
+              key={`${file.id}-${index}`}
               file={file}
               onDownload={() => window.open(file.url, "_blank")}
             />
@@ -110,11 +110,11 @@ function FileRow({
     pdf: "#E24B4A",
     xlsx: "#3B6D11",
     xls: "#3B6D11",
-    png: "#185FA5",
+    png: "#00E5FF", // Cyan Web3 color match
     jpg: "#185FA5",
     jpeg: "#185FA5",
-    doc: "#185FA5",
-    docx: "#185FA5",
+    doc: "#7F77DD", // Purple Web3 color match
+    docx: "#7F77DD",
   };
 
   const color = COLOR[ext] ?? "#534AB7";
@@ -122,12 +122,12 @@ function FileRow({
   const fmtBytes = (n: number) => {
     if (!n) return "—";
     if (n < 1024) return `${n} B`;
-    return `${(n / 1024).toFixed(1)} KB`;
+    if (n < 1048576) return `${(n / 1024).toFixed(1)} KB`;
+    return `${(n / 1048576).toFixed(1)} MB`; // Added MB precision for larger files
   };
 
   const fmtDate = (ts: number) => {
     if (!ts) return "—";
-
     return new Date(ts).toLocaleDateString("en-US", {
       day: "2-digit",
       month: "short",
@@ -135,10 +135,10 @@ function FileRow({
   };
 
   return (
-    <div className="file-row grid grid-cols-5 items-center py-3 px-2 hover:bg-white/5 rounded-lg transition-colors border-b border-white/5">
-      <div className="file-name-cell flex items-center gap-3">
+    <div className="file-row">
+      <div className="file-name-cell">
         <div
-          className="file-icon w-8 h-8 flex items-center justify-center rounded text-[10px] font-bold"
+          className="file-icon"
           style={{
             background: `${color}22`,
             color,
@@ -148,34 +148,36 @@ function FileRow({
         </div>
 
         <span
-          className="file-name text-sm font-medium truncate w-32"
+          className="file-name"
           title={file.name}
         >
           {file.name}
         </span>
       </div>
 
-      <span className="file-size text-xs text-gray-400">
+      <span className="file-size">
         {fmtBytes(file.size)}
       </span>
 
-      <span className="file-date text-xs text-gray-400">
+      <span className="file-date">
         {fmtDate(new Date(file.uploadedAt).getTime())}
       </span>
 
       <span
-        className="blob-id text-[10px] font-mono text-gray-500"
+        className="blob-id"
         title={file.id}
       >
-        {file.id ? `${file.id.slice(0, 10)}...` : "—"}
+        {file.id ? `${file.id.slice(0, 8)}...${file.id.slice(-4)}` : "—"}
       </span>
 
-      <button
-        className="btn-dl text-xs text-blue-500 hover:text-blue-400 font-bold text-right"
-        onClick={onDownload}
-      >
-        Download
-      </button>
+      <div style={{ textAlign: "right" }}>
+        <button
+          className="btn-dl"
+          onClick={onDownload}
+        >
+          Download
+        </button>
+      </div>
     </div>
   );
 }
